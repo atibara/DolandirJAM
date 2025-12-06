@@ -99,7 +99,6 @@ GameObject:
   - component: {fileID: 4566792989915820129}
   - component: {fileID: 4246410172330243468}
   - component: {fileID: 2239040783062904321}
-  - component: {fileID: 8649521117529352761}
   - component: {fileID: -4444110048426480471}
   m_Layer: 0
   m_Name: NPC
@@ -242,25 +241,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
---- !u!114 &8649521117529352761
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8418815925477202315}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7eb90286f8988c84f989c373b5a84398, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  moveSpeed: 4
-  isNerd: 1
-  enableWandering: 0
-  wanderCenter: {fileID: 0}
-  wanderRadius: 3
-  wanderInterval: 2
-  initialTarget: {fileID: 0}
 --- !u!195 &-4444110048426480471
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -270,7 +250,7 @@ NavMeshAgent:
   m_GameObject: {fileID: 8418815925477202315}
   m_Enabled: 1
   m_AgentTypeID: 0
-  m_Radius: 0.2
+  m_Radius: 0.05
   m_Speed: 3.5
   m_Acceleration: 8
   avoidancePriority: 50
@@ -279,7 +259,7 @@ NavMeshAgent:
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
-  m_Height: 1
+  m_Height: 0.1
   m_BaseOffset: 0.5
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4

@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 
@@ -5,14 +6,16 @@ using UnityEngine;
 public class Timer : MonoBehaviour
 {
     private TMP_Text timerText;
-    public float countdown = 11f;
+    [SerializeField]
+    private float countdown;
     private bool timerFinished = false;
-    private Question question;
+    public event Action<float> OnTimerStart;
+    public event Action OnTimerFinished;
 
     private void Start()
     {
         timerText = GetComponent<TMP_Text>();
-        question = GetComponentInParent<Question>();
+        OnTimerStart?.Invoke(countdown);
     }
 
     private void Update()
@@ -35,7 +38,7 @@ public class Timer : MonoBehaviour
 
             if (countdown < 0)
             {
-                question.SubmitAnswer();
+                OnTimerFinished?.Invoke();
                 timerFinished = true;
             }
         }

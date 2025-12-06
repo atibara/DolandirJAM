@@ -24,7 +24,7 @@ public class Exam : MonoBehaviour
             currentQuestionInstance = InstantiateQuestion();
 
             var question = currentQuestionInstance.GetComponent<Question>();
-            question.onQuestionAnswered += UpdateScore;
+            question.OnQuestionAnswered += UpdateScore;
         }
     }
 

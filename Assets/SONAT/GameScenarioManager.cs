@@ -2,31 +2,30 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement;
 
 public class GameScenarioManager : MonoBehaviour
 {
+    public static GameScenarioManager Instance;
+
+    [Header("Game State")]
+    public int CurrentPhase = 0;
+
+    public bool IsPanelActive = false;
+    public bool IsMinigameActive = false;
+    public bool IsGamePlaying = false;
+
+    [Header("Global References")]
+    public Transform PlayerTransform;
+
+    [Header("YOUR PANELS (Senin Panellerin)")]
+    public List<GameObject> PhasePanels;
+
+    [Header("Trigger Locations (EFEKTLERÝN OLDUÐU OBJELER)")]
+    [SerializeField] private Transform playerSeat;
+    [SerializeField] private Transform restroomPointPlayer;
+
     [Header("Components")]
     [SerializeField] private Guys statsManager;
-    [SerializeField] private Transform playerTransform;
-
-    [Header("NPCs")]
-    [SerializeField] private NPCController nerdNPC;
-    [SerializeField] private NPCController punkNPC;
-    [SerializeField] private NPCController sportsNPC;
-    [SerializeField] private NPCController girl1;
-    [SerializeField] private NPCController girl2;
-
-    [Header("Locations")]
-    [SerializeField] private Transform nerdCollisionPoint;
-    [SerializeField] private Transform playerSeat;
-    [SerializeField] private Transform nerdSeat;
-    [SerializeField] private Transform punkSeat;
-    [SerializeField] private Transform sportsSeat;
-    [SerializeField] private Transform girl1Seat;
-    [SerializeField] private Transform girl2Seat;
-    [SerializeField] private Transform restroomPointGirl;
-    [SerializeField] private Transform restroomPointPlayer;
 
     [Header("UI System")]
     [SerializeField] private GameObject dialoguePanel;
@@ -43,194 +42,178 @@ public class GameScenarioManager : MonoBehaviour
 
     private Queue<DialogueLine> currentDialogueQueue;
     private bool isDialogueActive = false;
-    private int currentPhase = 0;
-    private bool waitingForInteraction = false;
+
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+        currentDialogueQueue = new Queue<DialogueLine>();
+    }
 
     private void Start()
     {
-        dialoguePanel.SetActive(false);
-        minigamePlaceholderPanel.SetActive(false);
-        selectionPanel.SetActive(false);
-        currentDialogueQueue = new Queue<DialogueLine>();
+        if (dialoguePanel) dialoguePanel.SetActive(false);
+        if (minigamePlaceholderPanel) minigamePlaceholderPanel.SetActive(false);
+        if (selectionPanel) selectionPanel.SetActive(false);
+        foreach (var p in PhasePanels) if (p) p.SetActive(false);
 
-        StartPhase1_IntroMovement();
+        // 1. EFEKT OBJELERÝNÝ BAÞLANGIÇTA GÝZLE
+        if (playerSeat) playerSeat.gameObject.SetActive(false);
+        if (restroomPointPlayer) restroomPointPlayer.gameObject.SetActive(false);
+
+        IsGamePlaying = true;
+        IsPanelActive = false;
+        IsMinigameActive = false;
     }
 
     private void Update()
     {
-        if (isDialogueActive)
+        if (IsPanelActive)
         {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                DisplayNextSentence();
-            }
+            if (Input.GetKeyDown(KeyCode.Space)) ClosePanelAndStartEvent();
             return;
         }
 
-        CheckPhaseProgression();
-    }
+        if (isDialogueActive)
+        {
+            if (Input.GetKeyDown(KeyCode.Space)) DisplayNextSentence();
+            return;
+        }
 
-    private void CheckPhaseProgression()
-    {
-        if (currentPhase == 0)
+        if (IsGamePlaying)
         {
-            float dist = Vector3.Distance(playerTransform.position, nerdCollisionPoint.position);
-            if (dist < 1.0f && !waitingForInteraction)
-            {
-                waitingForInteraction = true;
-                nerdNPC.StopMoving();
-                StartMinigame("Nerd'ün Eþyalarýný Topla!\n(Týkla: Tamamla)", OnMinigame1Complete);
-            }
-        }
-        else if (currentPhase == 1)
-        {
-            float dist = Vector3.Distance(playerTransform.position, playerSeat.position);
-            if (dist < 0.5f && !waitingForInteraction)
-            {
-                waitingForInteraction = true;
-                StartMinigame("Sýnav Baþladý! Kopyalarý Daðýt.\n(Týkla: Tamamla)", OnMinigame2Complete);
-            }
-        }
-        else if (currentPhase == 2)
-        {
-            float dist = Vector3.Distance(playerTransform.position, restroomPointPlayer.position);
-            if (dist < 0.5f && !waitingForInteraction)
-            {
-                waitingForInteraction = true;
-                StartMinigame("Sistemi Hackle!\n(Týkla: Tamamla)", OnMinigame3Complete);
-            }
+            CheckArrivalTriggers();
         }
     }
 
-    private void StartPhase1_IntroMovement()
+    public void OpenPhasePanel()
     {
-        currentPhase = 0;
-        nerdNPC.MoveTo(nerdCollisionPoint.position);
+        IsGamePlaying = false;
+        IsPanelActive = true;
 
-        punkNPC.StartWandering();
-        sportsNPC.StartWandering();
-        girl1.StartWandering();
-        girl2.StartWandering();
+        if (CurrentPhase < PhasePanels.Count && PhasePanels[CurrentPhase] != null)
+        {
+            PhasePanels[CurrentPhase].SetActive(true);
+        }
+    }
+
+    private void ClosePanelAndStartEvent()
+    {
+        if (CurrentPhase < PhasePanels.Count && PhasePanels[CurrentPhase] != null)
+        {
+            PhasePanels[CurrentPhase].SetActive(false);
+        }
+
+        IsPanelActive = false;
+
+        // 2. PANEL KAPANDI, GÖREV BAÞLIYOR -> EFEKTÝ AÇ!
+        // Eðer Faz 1 (Sýnav) ise Sýrayý göster
+        if (CurrentPhase == 1 && playerSeat)
+            playerSeat.gameObject.SetActive(true);
+
+        // Eðer Faz 2 (Tuvalet) ise Tuvalet noktasýný göster
+        if (CurrentPhase == 2 && restroomPointPlayer)
+            restroomPointPlayer.gameObject.SetActive(true);
+
+
+        // Faz 0 ise direkt minigame, diðerlerinde yürüme baþlýyor
+        if (CurrentPhase == 0) StartMinigame("Nerd ile çarpýþtýn! Eþyalarý topla.", OnMinigame1Complete);
+        else
+        {
+            IsGamePlaying = true; // Yürümeye baþla
+        }
+    }
+
+    public void TriggerNerdCollision()
+    {
+        if (!IsGamePlaying || CurrentPhase != 0) return;
+        OpenPhasePanel();
+    }
+
+    private void CheckArrivalTriggers()
+    {
+        // FAZ 1: Sýnav Sýrasýna Varýþ
+        if (CurrentPhase == 1)
+        {
+            float dist = Vector3.Distance(PlayerTransform.position, playerSeat.position);
+            if (dist < 0.5f)
+            {
+                // 3. HEDEFE VARDIN -> EFEKTÝ KAPAT
+                playerSeat.gameObject.SetActive(false);
+                OpenPhasePanel();
+            }
+        }
+
+        // FAZ 2: Tuvalete Varýþ
+        if (CurrentPhase == 2)
+        {
+            float dist = Vector3.Distance(PlayerTransform.position, restroomPointPlayer.position);
+            if (dist < 0.8f)
+            {
+                // 3. HEDEFE VARDIN -> EFEKTÝ KAPAT
+                restroomPointPlayer.gameObject.SetActive(false);
+                OpenPhasePanel();
+            }
+        }
+    }
+
+    // --- SONRASI AYNI (Minigame Logic) ---
+    public void AdvancePhase()
+    {
+        CurrentPhase++;
+        IsGamePlaying = true;
     }
 
     private void OnMinigame1Complete()
     {
-        statsManager.addNerdLove(5);
-        statsManager.addSportsLove(5);
-
-        StartDialogue(introDialogue, StartPhase2_ClassMovement);
-    }
-
-    private void StartPhase2_ClassMovement()
-    {
-        currentPhase = 1;
-        waitingForInteraction = false;
-
-        nerdNPC.MoveTo(nerdSeat.position);
-        punkNPC.MoveTo(punkSeat.position);
-        sportsNPC.MoveTo(sportsSeat.position);
-        girl1.MoveTo(girl1Seat.position);
-        girl2.MoveTo(girl2Seat.position);
+        if (statsManager) { statsManager.addNerdLove(5); statsManager.addSportsLove(5); }
+        StartDialogue(introDialogue, AdvancePhase);
     }
 
     private void OnMinigame2Complete()
     {
-        statsManager.addNerdLove(-5);
-        statsManager.addPunkLove(5);
-        statsManager.addSportsLove(5);
-
-        StartDialogue(examDialogue, StartPhase3_RestroomMovement);
-    }
-
-    private void StartPhase3_RestroomMovement()
-    {
-        currentPhase = 2;
-        waitingForInteraction = false;
-
-        girl1.MoveTo(restroomPointGirl.position);
-
-        nerdNPC.StartWandering();
-        punkNPC.StartWandering();
-        sportsNPC.StartWandering();
-        girl2.StartWandering();
+        if (statsManager) { statsManager.addNerdLove(-5); statsManager.addPunkLove(5); statsManager.addSportsLove(5); }
+        StartDialogue(examDialogue, AdvancePhase);
     }
 
     private void OnMinigame3Complete()
     {
-        statsManager.addSportsLove(5);
-        statsManager.addPunkLove(5);
-
-        StartDialogue(restroomDialogue, StartSelectionPhase);
+        if (statsManager) { statsManager.addSportsLove(5); statsManager.addPunkLove(5); }
+        StartDialogue(restroomDialogue, () => selectionPanel.SetActive(true));
     }
 
-    private void StartSelectionPhase()
+    private void StartMinigame(string info, System.Action onComplete)
     {
-        selectionPanel.SetActive(true);
-    }
-
-    public void SelectSportsGuy()
-    {
-        if (statsManager.SPORTSLOVE > 10)
-        {
-            Debug.Log("MUTLU SON! Sporcu ile sevgili oldun.");
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
-        else
-        {
-            Debug.Log("REDDEDÝLDÝN! Puan yetersiz.");
-        }
-    }
-
-    private void StartMinigame(string info, System.Action onCompleteCallback)
-    {
+        IsMinigameActive = true;
         minigamePlaceholderPanel.SetActive(true);
         minigameInfoText.text = info;
-
-        Button btn = minigamePlaceholderPanel.GetComponentInChildren<Button>();
-        btn.onClick.RemoveAllListeners();
-        btn.onClick.AddListener(() => {
+        minigamePlaceholderPanel.GetComponentInChildren<Button>().onClick.RemoveAllListeners();
+        minigamePlaceholderPanel.GetComponentInChildren<Button>().onClick.AddListener(() => {
             minigamePlaceholderPanel.SetActive(false);
-            onCompleteCallback?.Invoke();
+            IsMinigameActive = false;
+            onComplete?.Invoke();
         });
     }
 
     private System.Action onDialogueEndCallback;
-
     private void StartDialogue(DialogueSequence sequence, System.Action onEnd)
     {
         dialoguePanel.SetActive(true);
         isDialogueActive = true;
         onDialogueEndCallback = onEnd;
         currentDialogueQueue.Clear();
-
-        foreach (DialogueLine line in sequence.lines)
-        {
-            currentDialogueQueue.Enqueue(line);
-        }
-
+        if (sequence != null && sequence.lines != null)
+            foreach (var line in sequence.lines) currentDialogueQueue.Enqueue(line);
         DisplayNextSentence();
     }
-
     private void DisplayNextSentence()
     {
-        if (currentDialogueQueue.Count == 0)
-        {
-            EndDialogue();
-            return;
-        }
-
+        if (currentDialogueQueue.Count == 0) { EndDialogue(); return; }
         DialogueLine line = currentDialogueQueue.Dequeue();
         dialogueText.text = line.sentence;
-        if (line.characterImage != null)
-            characterPortraitImage.sprite = line.characterImage;
-        else
-            characterPortraitImage.color = Color.clear;
+        characterPortraitImage.sprite = line.characterImage;
+        if (line.characterImage == null) characterPortraitImage.color = Color.white;
     }
-
-    private void EndDialogue()
-    {
-        dialoguePanel.SetActive(false);
-        isDialogueActive = false;
-        onDialogueEndCallback?.Invoke();
-    }
+    private void EndDialogue() { dialoguePanel.SetActive(false); isDialogueActive = false; onDialogueEndCallback?.Invoke(); }
+    public void SelectSportsGuy() { if (statsManager.SPORTSLOVE > 10) Debug.Log("MUTLU SON"); else Debug.Log("RED"); }
 }

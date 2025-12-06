@@ -1,24 +1,61 @@
 using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class Question : MonoBehaviour
 {
     [HideInInspector]
     public GameObject selectedAnswer;
-    public Action<bool> onQuestionAnswered;
+    public event Action<bool> OnQuestionAnswered;
 
-    public void SubmitAnswer()
+    [SerializeField]
+    private GameObject sportsGuy;
+    [SerializeField]
+    private GameObject punkGuy;
+    [SerializeField]
+    private Timer timer;
+
+    private void Start()
+    {
+        timer.OnTimerFinished += SubmitAnswer;
+        timer.OnTimerStart += CheatAtRandom;
+    }
+
+    private void CheatAtRandom(float time)
+    {
+        var sportsCheatTime = Random.Range(-time, time);
+        var punkCheatTime = Random.Range(-time, time);
+
+        if (sportsCheatTime > 0)
+        {
+            StartCoroutine(CheatGuyInSeconds(sportsCheatTime, sportsGuy));
+        }
+
+        if (punkCheatTime > 0)
+        {
+            StartCoroutine(CheatGuyInSeconds(punkCheatTime, punkGuy));
+        }
+    }
+
+    private IEnumerator CheatGuyInSeconds(float seconds, GameObject guy)
+    {
+        yield return new WaitForSeconds(seconds);
+        Instantiate(guy, transform);
+    }
+
+    private void SubmitAnswer()
     {
         if (selectedAnswer == null)
         {
-            onQuestionAnswered?.Invoke(false);
+            OnQuestionAnswered?.Invoke(false);
         }
         else
         {
             var answer = selectedAnswer.GetComponent<Answer>();
 
-            onQuestionAnswered?.Invoke(answer.isCorrect);
+            OnQuestionAnswered?.Invoke(answer.isCorrect);
         }
 
         Destroy(gameObject);
