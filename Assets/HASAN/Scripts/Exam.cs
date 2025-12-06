@@ -1,12 +1,16 @@
 using System.Collections.Generic;
-using Unity.VisualScripting;
+using TMPro;
 using UnityEngine;
 
 public class Exam : MonoBehaviour
 {
     public List<GameObject> questions;
     private Queue<GameObject> questionsQueue;
-    private GameObject currentQuestion;
+    private GameObject currentQuestionInstance;
+
+    public int scorePoint = 20;
+    private int score = 0;
+    public TMP_Text scoreText;
 
     void Start()
     {
@@ -15,14 +19,29 @@ public class Exam : MonoBehaviour
 
     void Update()
     {
-        if (currentQuestion == null && questionsQueue.Count != 0)
+        if (currentQuestionInstance == null && questionsQueue.Count != 0)
         {
-            currentQuestion = InstantiateQuestion();
+            currentQuestionInstance = InstantiateQuestion();
+
+            var question = currentQuestionInstance.GetComponent<Question>();
+            question.onQuestionAnswered += UpdateScore;
         }
+    }
+
+    private void UpdateScore(bool correct)
+    {
+        if (correct)
+        {
+            score += 20;
+        }
+
+        scoreText.text = score.ToString() + "/100";
     }
 
     private GameObject InstantiateQuestion()
     {
-        return Instantiate(questionsQueue.Dequeue(), transform);
+        var questionInstance = questionsQueue.Dequeue();
+
+        return Instantiate(questionInstance, transform);
     }
 }
