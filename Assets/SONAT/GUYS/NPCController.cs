@@ -1,112 +1,79 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class NPCController : MonoBehaviour
 {
-    [Header("General Settings")]
-    [SerializeField] private float moveSpeed = 4f;
-    [SerializeField] private bool isNerd = false;
+    [SerializeField] private bool enableWandering = false;
+    [SerializeField] private float wanderRadius = 5f;
 
-    [Header("Wander Settings (Serbest Mod)")]
-    [SerializeField] private bool enableWandering = false; // Diðerleri için iþaretle
-    [SerializeField] private Transform wanderCenter; // Kimin etrafýnda gezecek? (Nerd)
-    [SerializeField] private float wanderRadius = 3f; // Ne kadar yakýnda gezsin?
-    [SerializeField] private float wanderInterval = 2f; // Kaç saniyede bir yeni yere gitsin?
-
-    [Header("Start Target (Sadece Nerd Ýçin)")]
-    [SerializeField] private Transform initialTarget; // Oyun baþlar baþlamaz gideceði yer
-
-    private Vector3 currentDestination;
-    private bool hasDestination = false; // Þu an bir emri var mý?
-    private bool isScriptedSequence = false; // Hikaye modu baþladý mý?
-
+    private NavMeshAgent agent;
+    private bool isWandering;
     private float wanderTimer;
-    private Rigidbody2D rb;
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-    }
-
-    private void Start()
-    {
-        // Oyun baþladýðýnda Nerd ise hemen baþlangýç noktasýna (çarpýþma yerine) gitsin
-        if (isNerd && initialTarget != null)
-        {
-            SetDestination(initialTarget.position);
-        }
+        agent = GetComponent<NavMeshAgent>();
+        agent.updateRotation = false;
+        agent.updateUpAxis = false;
     }
 
     private void Update()
     {
-        // Eðer hikaye modunda deðilsek ve Wandering açýksa
-        if (!isScriptedSequence && !isNerd && enableWandering)
+        if (isWandering && enableWandering)
         {
             HandleWandering();
-        }
-
-        // Hedefe gitme iþlemi (Hem hikaye hem wander için ortak)
-        if (hasDestination)
-        {
-            MoveToPosition(currentDestination);
-
-            if (Vector3.Distance(transform.position, currentDestination) < 0.1f)
-            {
-                hasDestination = false;
-                rb.linearVelocity = Vector2.zero; // Dur
-            }
         }
     }
 
     private void HandleWandering()
     {
         wanderTimer -= Time.deltaTime;
-
-        if (wanderTimer <= 0 && wanderCenter != null)
+        if (wanderTimer <= 0)
         {
-            // Nerd'ün etrafýnda rastgele bir nokta bul
-            Vector2 randomPoint = Random.insideUnitCircle * wanderRadius;
-            Vector3 targetPos = wanderCenter.position + new Vector3(randomPoint.x, randomPoint.y, 0);
-
-            SetDestination(targetPos);
-
-            // Sýradaki hareket için rastgele bekleme süresi
-            wanderTimer = wanderInterval;
+            Vector3 randomDirection = Random.insideUnitSphere * wanderRadius;
+            randomDirection += transform.position;
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(randomDirection, out hit, wanderRadius, 1))
+            {
+                agent.SetDestination(hit.position);
+            }
+            wanderTimer = Random.Range(3f, 6f);
         }
     }
 
-    private void MoveToPosition(Vector3 target)
+    public void MoveTo(Vector3 targetPosition)
     {
-        transform.position = Vector3.MoveTowards(transform.position, target, moveSpeed * Time.deltaTime);
-    }
-
-    // GameManager burayý çaðýrdýðýnda NPC artýk kendi kafasýna göre gezmeyi býrakýr
-    public void SetDestination(Vector3 target, bool isSequenceOrder = false)
-    {
-        if (isSequenceOrder)
+        // Eðer NavMesh üzerinde deðilse (henüz bake olmadýysa veya havadaysa) iþlem yapma
+        if (!agent.isOnNavMesh)
         {
-            isScriptedSequence = true; // Artýk hikaye modundayýz, wander iptal.
+            // Agent'ý en yakýn NavMesh noktasýna ýþýnlamayý dene
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(transform.position, out hit, 2.0f, NavMesh.AllAreas))
+            {
+                agent.Warp(hit.position); // Ajaný zemine yapýþtýr
+            }
+            else
+            {
+                Debug.LogWarning($"{gameObject.name} bir NavMesh üzerinde deðil! Hareket iptal edildi.");
+                return;
+            }
         }
 
-        currentDestination = target;
-        hasDestination = true;
+        isWandering = false;
+        agent.isStopped = false; // "Resume" hatasý veren yer burasýydý, artýk güvenli.
+        agent.SetDestination(targetPosition);
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    public void StartWandering()
     {
-        if (isNerd && collision.gameObject.CompareTag("Player"))
-        {
-            // Çarpýþma olduðunda GameManager'a haber ver
-            FindAnyObjectByType<GameSequenceManager>().OnNerdCollision();
-        }
+        isWandering = true;
+        agent.isStopped = false;
     }
 
-    // Editörde yarýçapý görebilmek için gizmo (Sarý çember)
-    private void OnDrawGizmosSelected()
+    public void StopMoving()
     {
-        if (wanderCenter != null)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(wanderCenter.position, wanderRadius);
-        }
+        isWandering = false;
+        agent.isStopped = true;
+        agent.ResetPath();
     }
 }
