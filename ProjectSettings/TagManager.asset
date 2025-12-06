@@ -47,6 +47,9 @@ TagManager:
   - name: Player
     uniqueID: 2637587529
     locked: 0
+  - name: Obstacles
+    uniqueID: 3380623337
+    locked: 0
   m_RenderingLayers:
   - Default
   - Light Layer 1
