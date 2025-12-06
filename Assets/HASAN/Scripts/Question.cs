@@ -1,16 +1,29 @@
+using TMPro;
 using UnityEngine;
 
 public class Question : MonoBehaviour
 {
-    public void SubmitAnswer(bool correct)
+    public GameObject selectedAnswer;
+    public TMP_Text scoreText;
+
+    public void SubmitAnswer()
     {
-        if (correct)
+        if (selectedAnswer == null)
         {
-            Debug.Log("Correct answer.");
+            Debug.Log("no answer selected");
         }
         else
         {
-            Debug.Log("Wrong answer.");
+            var answer = selectedAnswer.GetComponent<Answer>();
+
+            if (answer.isCorrect)
+            {
+                Debug.Log("correct answer");
+            }
+            else
+            {
+                Debug.Log("wrong answer");
+            }            
         }
 
         Destroy(gameObject);

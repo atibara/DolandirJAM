@@ -1,4 +1,3 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class Answer : MonoBehaviour
@@ -11,8 +10,8 @@ public class Answer : MonoBehaviour
         question = GetComponentInParent<Question>();
     }
 
-    public void AnswerQuestion()
+    public void SelectQuestion()
     {
-        question.SubmitAnswer(isCorrect);
+        question.selectedAnswer = gameObject;
     }
 }

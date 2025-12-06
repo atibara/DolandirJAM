@@ -5,7 +5,7 @@ using UnityEngine;
 public class Timer : MonoBehaviour
 {
     private TMP_Text timerText;
-    public float countdown = 10f;
+    public float countdown = 11f;
     private bool timerFinished = false;
     private Question question;
 
@@ -20,11 +20,22 @@ public class Timer : MonoBehaviour
         if (!timerFinished)
         {
             countdown -= Time.deltaTime;
-            timerText.text = Mathf.Ceil(countdown).ToString();
+
+            float n;
+            if (countdown - 1 <= 0)
+            {
+                n = 0f;
+            }
+            else
+            {
+                n = countdown - 1;
+            }
+
+            timerText.text = Mathf.Ceil(n).ToString();
 
             if (countdown < 0)
             {
-                question.SubmitAnswer(false);
+                question.SubmitAnswer();
                 timerFinished = true;
             }
         }
