@@ -1132,4 +1132,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selectedAnswer: {fileID: 0}
-  scoreText: {fileID: 0}
+  sportsGuy: {fileID: 3837581405787516360, guid: a88e46ca5f2ce7346ae54fe8538374c3, type: 3}
+  punkGuy: {fileID: 1726119870360091154, guid: a416b6ff2ff3d1243aa23890ccc8773c, type: 3}
+  timer: {fileID: 4959008559866743908}
