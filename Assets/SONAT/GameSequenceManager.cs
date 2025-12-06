@@ -49,11 +49,12 @@ public class GameSequenceManager : MonoBehaviour
     {
         isExamSequenceActive = true;
 
-        nerdNPC.SetDestination(nerdSeat.position);
-        punkNPC.SetDestination(punkSeat.position);
-        jockNPC.SetDestination(jockSeat.position);
-        girl1NPC.SetDestination(girl1Seat.position);
-        girl2NPC.SetDestination(girl2Seat.position);
+        // true parametresi gönderiyoruz ki Wander modundan çýksýnlar
+        nerdNPC.SetDestination(nerdSeat.position, true);
+        punkNPC.SetDestination(punkSeat.position, true);
+        jockNPC.SetDestination(jockSeat.position, true);
+        girl1NPC.SetDestination(girl1Seat.position, true);
+        girl2NPC.SetDestination(girl2Seat.position, true);
     }
 
     private void CheckPlayerAtSeat()
@@ -73,12 +74,12 @@ public class GameSequenceManager : MonoBehaviour
 
     private void EndExamAndStartRestroomSequence()
     {
-        nerdNPC.SetDestination(exitPoint.position);
-        punkNPC.SetDestination(exitPoint.position);
-        jockNPC.SetDestination(exitPoint.position);
+        nerdNPC.SetDestination(exitPoint.position, true);
+        punkNPC.SetDestination(exitPoint.position, true);
+        jockNPC.SetDestination(exitPoint.position, true);
 
-        girl1NPC.SetDestination(girlsRestroomPoint.position);
-        girl2NPC.SetDestination(girlsRestroomPoint.position);
+        girl1NPC.SetDestination(girlsRestroomPoint.position, true);
+        girl2NPC.SetDestination(girlsRestroomPoint.position, true);
 
         isRestroomSequenceActive = true;
     }
@@ -96,4 +97,8 @@ public class GameSequenceManager : MonoBehaviour
     {
         Debug.Log("Main Game Started!");
     }
+
+
+
+
 }
