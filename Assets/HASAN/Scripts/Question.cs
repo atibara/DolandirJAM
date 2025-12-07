@@ -6,8 +6,7 @@ using Random = UnityEngine.Random;
 
 public class Question : MonoBehaviour
 {
-    [HideInInspector]
-    public GameObject selectedAnswer;
+    private GameObject selectedAnswer;
     public event Action<bool> OnQuestionAnswered;
 
     [SerializeField]
@@ -38,6 +37,8 @@ public class Question : MonoBehaviour
             StartCoroutine(CheatGuyInSeconds(punkCheatTime, punkGuy));
         }
     }
+
+    public void SelectAnswer(GameObject answer) => selectedAnswer = answer;
 
     private IEnumerator CheatGuyInSeconds(float seconds, GameObject guy)
     {
