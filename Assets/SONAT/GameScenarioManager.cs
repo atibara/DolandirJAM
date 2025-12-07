@@ -17,10 +17,13 @@ public class GameScenarioManager : MonoBehaviour
     [Header("Global References")]
     public Transform PlayerTransform;
 
-    [Header("YOUR PANELS (Senin Panellerin)")]
+    [Header("INTRO PANELS (Bölüm Baþlangýç Panelleri)")]
     public List<GameObject> PhasePanels;
 
-    [Header("Trigger Locations (EFEKTLERÝN OLDUÐU OBJELER)")]
+    [Header("MINIGAME OBJECTS")]
+    public List<GameObject> MinigameObjects;
+
+    [Header("Trigger Locations")]
     [SerializeField] private Transform playerSeat;
     [SerializeField] private Transform restroomPointPlayer;
 
@@ -31,8 +34,6 @@ public class GameScenarioManager : MonoBehaviour
     [SerializeField] private GameObject dialoguePanel;
     [SerializeField] private Image characterPortraitImage;
     [SerializeField] private TextMeshProUGUI dialogueText;
-    [SerializeField] private GameObject minigamePlaceholderPanel;
-    [SerializeField] private TextMeshProUGUI minigameInfoText;
     [SerializeField] private GameObject selectionPanel;
 
     [Header("Dialogues")]
@@ -53,11 +54,9 @@ public class GameScenarioManager : MonoBehaviour
     private void Start()
     {
         if (dialoguePanel) dialoguePanel.SetActive(false);
-        if (minigamePlaceholderPanel) minigamePlaceholderPanel.SetActive(false);
         if (selectionPanel) selectionPanel.SetActive(false);
         foreach (var p in PhasePanels) if (p) p.SetActive(false);
-
-        // 1. EFEKT OBJELERÝNÝ BAÞLANGIÇTA GÝZLE
+        foreach (var g in MinigameObjects) if (g) g.SetActive(false);
         if (playerSeat) playerSeat.gameObject.SetActive(false);
         if (restroomPointPlayer) restroomPointPlayer.gameObject.SetActive(false);
 
@@ -106,22 +105,12 @@ public class GameScenarioManager : MonoBehaviour
 
         IsPanelActive = false;
 
-        // 2. PANEL KAPANDI, GÖREV BAÞLIYOR -> EFEKTÝ AÇ!
-        // Eðer Faz 1 (Sýnav) ise Sýrayý göster
-        if (CurrentPhase == 1 && playerSeat)
-            playerSeat.gameObject.SetActive(true);
+        if (CurrentPhase == 1 && playerSeat) playerSeat.gameObject.SetActive(true);
+        if (CurrentPhase == 2 && restroomPointPlayer) restroomPointPlayer.gameObject.SetActive(true);
 
-        // Eðer Faz 2 (Tuvalet) ise Tuvalet noktasýný göster
-        if (CurrentPhase == 2 && restroomPointPlayer)
-            restroomPointPlayer.gameObject.SetActive(true);
-
-
-        // Faz 0 ise direkt minigame, diðerlerinde yürüme baþlýyor
-        if (CurrentPhase == 0) StartMinigame("Nerd ile çarpýþtýn! Eþyalarý topla.", OnMinigame1Complete);
-        else
-        {
-            IsGamePlaying = true; // Yürümeye baþla
-        }
+        if (CurrentPhase == 0) StartMinigame(0, OnMinigame1Complete);
+        else if (CurrentPhase == 1) IsGamePlaying = true;
+        else if (CurrentPhase == 2) IsGamePlaying = true;
     }
 
     public void TriggerNerdCollision()
@@ -132,32 +121,55 @@ public class GameScenarioManager : MonoBehaviour
 
     private void CheckArrivalTriggers()
     {
-        // FAZ 1: Sýnav Sýrasýna Varýþ
         if (CurrentPhase == 1)
         {
             float dist = Vector3.Distance(PlayerTransform.position, playerSeat.position);
             if (dist < 0.5f)
             {
-                // 3. HEDEFE VARDIN -> EFEKTÝ KAPAT
                 playerSeat.gameObject.SetActive(false);
-                OpenPhasePanel();
+                StartMinigame(1, OnMinigame2Complete);
             }
         }
 
-        // FAZ 2: Tuvalete Varýþ
         if (CurrentPhase == 2)
         {
             float dist = Vector3.Distance(PlayerTransform.position, restroomPointPlayer.position);
             if (dist < 0.8f)
             {
-                // 3. HEDEFE VARDIN -> EFEKTÝ KAPAT
                 restroomPointPlayer.gameObject.SetActive(false);
-                OpenPhasePanel();
+                StartMinigame(2, OnMinigame3Complete);
             }
         }
     }
 
-    // --- SONRASI AYNI (Minigame Logic) ---
+    private void StartMinigame(int gameIndex, System.Action onComplete)
+    {
+        IsGamePlaying = false;
+        IsMinigameActive = true;
+
+        if (gameIndex < MinigameObjects.Count && MinigameObjects[gameIndex] != null)
+        {
+            GameObject gameObj = MinigameObjects[gameIndex];
+            gameObj.SetActive(true);
+
+            Button btn = gameObj.GetComponentInChildren<Button>();
+            if (btn != null)
+            {
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(() => {
+                    gameObj.SetActive(false);
+                    IsMinigameActive = false;
+                    onComplete?.Invoke();
+                });
+            }
+        }
+        else
+        {
+            IsMinigameActive = false;
+            onComplete?.Invoke();
+        }
+    }
+
     public void AdvancePhase()
     {
         CurrentPhase++;
@@ -182,19 +194,6 @@ public class GameScenarioManager : MonoBehaviour
         StartDialogue(restroomDialogue, () => selectionPanel.SetActive(true));
     }
 
-    private void StartMinigame(string info, System.Action onComplete)
-    {
-        IsMinigameActive = true;
-        minigamePlaceholderPanel.SetActive(true);
-        minigameInfoText.text = info;
-        minigamePlaceholderPanel.GetComponentInChildren<Button>().onClick.RemoveAllListeners();
-        minigamePlaceholderPanel.GetComponentInChildren<Button>().onClick.AddListener(() => {
-            minigamePlaceholderPanel.SetActive(false);
-            IsMinigameActive = false;
-            onComplete?.Invoke();
-        });
-    }
-
     private System.Action onDialogueEndCallback;
     private void StartDialogue(DialogueSequence sequence, System.Action onEnd)
     {
@@ -206,14 +205,35 @@ public class GameScenarioManager : MonoBehaviour
             foreach (var line in sequence.lines) currentDialogueQueue.Enqueue(line);
         DisplayNextSentence();
     }
+
+    // --- BURASI GÜNCELLENDÝ: ARTIK RENK DE DEÐÝÞÝYOR ---
     private void DisplayNextSentence()
     {
         if (currentDialogueQueue.Count == 0) { EndDialogue(); return; }
+
         DialogueLine line = currentDialogueQueue.Dequeue();
+
+        // 1. Yazýyý güncelle
         dialogueText.text = line.sentence;
-        characterPortraitImage.sprite = line.characterImage;
-        if (line.characterImage == null) characterPortraitImage.color = Color.white;
+
+        // 2. Resmi güncelle
+        if (line.characterImage != null)
+            characterPortraitImage.sprite = line.characterImage;
+
+        // 3. RENGI GÜNCELLE (YENÝ ÖZELLÝK)
+        // Eðer diyalog verisinde renk þeffaf (Alpha=0) gelirse varsayýlan Beyaz yap ki görünmez olmasýn
+        // (Ama sen bilerek þeffaf yapmak istersen kodunu ona göre ayarlayabilirsin, þu an direkt atýyor)
+        if (line.portraitColor.a == 0 && line.portraitColor.r == 0 && line.portraitColor.g == 0 && line.portraitColor.b == 0)
+        {
+            // Eðer kullanýcý renk seçmeyi unuttuysa resim kaybolmasýn diye otomatik Beyaz yap
+            characterPortraitImage.color = Color.white;
+        }
+        else
+        {
+            characterPortraitImage.color = line.portraitColor;
+        }
     }
+
     private void EndDialogue() { dialoguePanel.SetActive(false); isDialogueActive = false; onDialogueEndCallback?.Invoke(); }
     public void SelectSportsGuy() { if (statsManager.SPORTSLOVE > 10) Debug.Log("MUTLU SON"); else Debug.Log("RED"); }
 }
