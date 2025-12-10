@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class Question : MonoBehaviour
 {
-    private GameObject selectedAnswer;
+    private GameObject selectedAnswer = null;
     public event Action<bool> OnQuestionAnswered;
 
     [SerializeField]
@@ -38,7 +38,34 @@ public class Question : MonoBehaviour
         }
     }
 
-    public void SelectAnswer(GameObject answer) => selectedAnswer = answer;
+    public void SelectAnswer(GameObject answer)
+    {
+        if (selectedAnswer == answer)
+        {
+            selectedAnswer = null;
+
+            UpdateAnswerColors(answer, null);
+        }
+        else
+        {
+            UpdateAnswerColors(selectedAnswer, answer);
+
+            selectedAnswer = answer;
+        }
+    }
+
+    private void UpdateAnswerColors(GameObject previousSelection, GameObject currentSelection)
+    {
+        if (previousSelection != null)
+        {
+            previousSelection.GetComponent<Image>().color = Color.white;
+        }
+
+        if (currentSelection != null)
+        {
+            currentSelection.GetComponent<Image>().color = Color.grey;
+        }
+    }
 
     private IEnumerator CheatGuyInSeconds(float seconds, GameObject guy)
     {
