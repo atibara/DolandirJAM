@@ -1,18 +1,22 @@
 using UnityEngine;
+using System.Collections.Generic; // List'leri kullanmak için bu þart
 
 [System.Serializable]
-public struct DialogueLine
+public class DialogueLine
 {
-    public Sprite characterImage;
+    [Header("Kim Konuþuyor?")]
+    public string characterName; // Ýsim alaný
+    public Sprite characterImage; // Resim
+    public Color portraitColor = Color.white; // Resim yoksa renk
 
-    [Tooltip("Karakter resminin rengi (Varsayýlan Beyaz). Þeffaflýk için Alpha'yý kýsabilirsin.")]
-    public Color portraitColor;
-
-    [TextArea(3, 10)] public string sentence;
+    [Header("Ne Diyor?")]
+    [TextArea(3, 10)]
+    public string sentence; // Cümle
 }
 
 [System.Serializable]
 public class DialogueSequence
 {
-    public DialogueLine[] lines;
+    public string sequenceID; // Hatýrlatýcý not
+    public List<DialogueLine> lines; // Array yerine List kullanýyoruz, düzenlemesi daha kolay
 }
